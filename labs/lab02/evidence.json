@@ -1,0 +1,45 @@
+{
+  "dataset": "realearn-evidence",
+  "schema_version": 1,
+  "lab_id": "lab02",
+  "title": "Stripped 二进制与字符串证据",
+  "date": "2026-10-12",
+  "verified_date": "2026-10-16",
+  "source_record": "doc/labs/2026-10-12-lab02-stripped-and-strings.md",
+  "environment": {
+    "os": "Linux opencloudos 9.4 x86_64（同 lab00）",
+    "binutils": "系统包",
+    "workdir": "/root/projects/realearn/lab-env/"
+  },
+  "entries": [
+    {
+      "step": "实验A strip 后符号消失",
+      "command": "cp hello hello-stripped && strip hello-stripped && readelf -s hello-stripped",
+      "output": "Symbol table '.dynsym' contains 4 entries:   # .symtab 已删，secret/main 无名",
+      "output_exit_code": null,
+      "subject_sha256": "7dda4d0500da95f2daeaf952b5efc3be4b51f6472f775a2b6be92d0c687f82c3",
+      "note": "hello-stripped 为 strip 后产物。"
+    },
+    {
+      "step": "实验A 无符号反汇编定位（特征常量锚点）",
+      "command": "objdump -d -M intel hello-stripped | grep -B2 -A9 'imul.*0x539'",
+      "output": "  400410: 69 c0 39 05 00 00  imul eax,eax,0x539\n  400416: 83 c0 07           add  eax,0x7\n  ...\n  40041f: bf 2a 00 00 00     mov  edi,0x2a          ; 42，唯一调用点传参\n  400424: e8 dd ff ff ff     call 400406 <printf@plt+0xf6>  ; 无名函数重定位表示",
+      "output_exit_code": null,
+      "subject_sha256": "7dda4d0500da95f2daeaf952b5efc3be4b51f6472f775a2b6be92d0c687f82c3"
+    },
+    {
+      "step": "实验B 字符串常量扫描",
+      "command": "gcc -O0 -o key key.c && strings key | grep MAGIC",
+      "output": "MAGIC_KEY_12345",
+      "output_exit_code": null,
+      "subject_sha256": "9812f2acea38e384fff7e6b55523601d759d48ef7fd6dd62515e197a0c8d1db7",
+      "note": "源码 key.c（sha256 25e5b71a0514b74766c75e07f08bc44068710794f00756850bbcfbf842b249b8）：const char* msg=\"MAGIC_KEY_12345\"; int main(){return 0;}"
+    }
+  ],
+  "sha256_recomputed": {
+    "hello-stripped": "7dda4d0500da95f2daeaf952b5efc3be4b51f6472f775a2b6be92d0c687f82c3",
+    "key": "9812f2acea38e384fff7e6b55523601d759d48ef7fd6dd62515e197a0c8d1db7",
+    "key.c": "25e5b71a0514b74766c75e07f08bc44068710794f00756850bbcfbf842b249b8",
+    "note": "2026-10-16 在同一实验机对保留产物重算 sha256sum。"
+  }
+}

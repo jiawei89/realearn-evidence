@@ -1,0 +1,52 @@
+{
+  "dataset": "realearn-evidence",
+  "schema_version": 1,
+  "lab_id": "lab01",
+  "title": "自编译目标：第一个合法分析对象（hello-world ELF）",
+  "date": "2026-10-12",
+  "verified_date": "2026-10-16",
+  "source_record": "doc/labs/2026-10-12-lab01-first-legal-target.md",
+  "environment": {
+    "os": "Linux opencloudos 9.4 x86_64（同 lab00）",
+    "compiler": "gcc（系统包）",
+    "binutils": "系统包",
+    "workdir": "/root/projects/realearn/lab-env/"
+  },
+  "entries": [
+    {
+      "step": "步骤1 编译并运行",
+      "command": "gcc -O0 -o hello hello.c && ./hello",
+      "output": "hello realearn 56161",
+      "output_exit_code": null,
+      "subject_sha256": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352",
+      "note": "源码 hello.c（sha256 b55bfdf423b23e6d47142295b220b92924117ee1573798ca70f095bfa39b9f68）：#include <stdio.h> / int secret(int x){return x*1337+7;} / int main(){printf(\"hello realearn %d\\n\", secret(42));return 0;}。预期 42*1337+7=56161 ✓。"
+    },
+    {
+      "step": "步骤2 格式识别",
+      "command": "file hello",
+      "output": "hello: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=8a984d6d..., not stripped",
+      "output_exit_code": null,
+      "subject_sha256": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352"
+    },
+    {
+      "step": "步骤3 ELF 头与符号表",
+      "command": "readelf -h hello && readelf -s hello | grep -E 'secret|main'",
+      "output": "  Class: ELF64 / Data: 2's complement little endian / Type: EXEC\n  Machine: Advanced Micro Devices X86-64 / Entry point: 0x400320\n  27: 0000000000400406   21 FUNC GLOBAL DEFAULT 3 secret\n  32: 000000000040041b   38 FUNC GLOBAL DEFAULT 3 main",
+      "output_exit_code": null,
+      "subject_sha256": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352"
+    },
+    {
+      "step": "步骤4 反汇编 secret",
+      "command": "objdump -d -M intel hello | grep -A8 '<secret>:'",
+      "output": "0000000000400406 <secret>:\n  400406: 55                push rbp\n  400407: 48 89 e5          mov rbp,rsp\n  40040a: 89 7d fc          mov DWORD PTR [rbp-0x4],edi      ; 参数 x 入栈\n  40040d: 8b 45 fc          mov eax,DWORD PTR [rbp-0x4]\n  400410: 69 c0 39 05 00 00 imul eax,eax,0x539              ; ×1337（0x539）\n  400416: 83 c0 07          add eax,0x7                     ; +7\n  400419: 5d                pop rbp\n  40041a: c3                ret",
+      "output_exit_code": null,
+      "subject_sha256": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352",
+      "note": "从二进制反推 secret(x)=x*0x539+7，与源码及运行输出三方对账一致。"
+    }
+  ],
+  "sha256_recomputed": {
+    "hello": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352",
+    "hello.c": "b55bfdf423b23e6d47142295b220b92924117ee1573798ca70f095bfa39b9f68",
+    "note": "2026-10-16 在同一实验机对保留产物重算 sha256sum。"
+  }
+}

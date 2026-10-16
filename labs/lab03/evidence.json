@@ -1,0 +1,44 @@
+{
+  "dataset": "realearn-evidence",
+  "schema_version": 1,
+  "lab_id": "lab03",
+  "title": "开源软件二进制：系统 OpenSSL libcrypto 分析（无引擎路径）",
+  "date": "2026-10-12",
+  "verified_date": "2026-10-16",
+  "source_record": "doc/labs/2026-10-12-lab03-openssl-libcrypto.md",
+  "environment": {
+    "os": "Linux opencloudos 9.4 x86_64（同 lab00）",
+    "binutils": "系统包",
+    "workdir": "/root/projects/realearn/lab-env/",
+    "license_basis": "OpenSSL Apache-2.0 §2 明文允许反编译研究（白名单第1类开源二进制）；仅只读分析系统自带文件。"
+  },
+  "entries": [
+    {
+      "step": "步骤1 确认分析对象与版本一致性",
+      "command": "openssl version && ls -la /usr/lib64/libcrypto.so.3",
+      "output": "OpenSSL 3.0.12 24 Oct 2023 (Library: OpenSSL 3.0.12 24 Oct 2023)\n/usr/lib64/libcrypto.so.3 → libcrypto.so.3.0.12（4.5MB）",
+      "output_exit_code": null,
+      "subject_sha256": "c7f3d84f6de8162ba54aa261a69696c54f475c7178a1bb0d4a7caf8c53bffa76",
+      "note": "分析对象为本机系统自带 /usr/lib64/libcrypto.so.3.0.12，未复制。"
+    },
+    {
+      "step": "步骤2 明文版本串",
+      "command": "strings -a /usr/lib64/libcrypto.so.3 | grep -m3 'OpenSSL [0-9]'",
+      "output": "OpenSSL 3.0.12 24 Oct 2023",
+      "output_exit_code": null,
+      "subject_sha256": "c7f3d84f6de8162ba54aa261a69696c54f475c7178a1bb0d4a7caf8c53bffa76"
+    },
+    {
+      "step": "步骤3 依赖关系",
+      "command": "readelf -d /usr/bin/openssl | grep NEEDED",
+      "output": "  Shared library: [libssl.so.3]\n  Shared library: [libcrypto.so.3]\n  Shared library: [libc.so.6]",
+      "output_exit_code": null,
+      "subject_sha256": null,
+      "note": "分析对象为 /usr/bin/openssl CLI，未单独记录其 sha256。"
+    }
+  ],
+  "sha256_recomputed": {
+    "libcrypto.so.3.0.12": "c7f3d84f6de8162ba54aa261a69696c54f475c7178a1bb0d4a7caf8c53bffa76",
+    "note": "2026-10-16 在同一实验机对系统文件重算 sha256sum。"
+  }
+}

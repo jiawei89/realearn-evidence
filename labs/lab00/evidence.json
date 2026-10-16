@@ -1,0 +1,100 @@
+{
+  "dataset": "realearn-evidence",
+  "schema_version": 1,
+  "lab_id": "lab00",
+  "title": "REA 安装 + Agent（Hermes）接入 + 环境诊断（含附录 R8-A pwntools-elf 补跑）",
+  "date": "2026-10-12",
+  "verified_date": "2026-10-16",
+  "source_record": "doc/labs/2026-10-12-lab00-rea-install-and-mcp.md",
+  "environment": {
+    "os": "Linux opencloudos 9.4 x86_64（腾讯云 VM，2 vCPU / 7G RAM / 磁盘余 11G）",
+    "node": "v22.22.0",
+    "npm": "10.9.4",
+    "workdir": "/root/projects/realearn/lab-env/"
+  },
+  "entries": [
+    {
+      "step": "步骤1 安装 rea-agents",
+      "command": "npm install rea-agents@latest && npx rea --version",
+      "output": "rea@6.4.0 — Reverse engineer anything from your terminal or agent.",
+      "output_exit_code": null,
+      "subject_sha256": null,
+      "note": "包信息：rea-agents@6.4.0，bin rea/rea-agents，35 deps，安装报 0 vulnerabilities。exit code 未记录于原 lab 记录，如实置 null。"
+    },
+    {
+      "step": "步骤3 rea doctor 环境诊断",
+      "command": "npx rea doctor",
+      "output": "healthy: false\n  - node: ok (22.22.0)\n  - host: UNSUPPORTED — opencloudos 9.4\n    remediation: \"REA supports macOS 12+, Ubuntu 24.04+, Fedora 41+, Nobara 44+, 64-bit Arch Linux, CachyOS, Omarchy, and the experimental Windows x64 Ghidra P0 boundary.\"\n  - hopper: missing_analysis_engine（/opt/hopper/bin/Hopper 不存在）\n  - ghidra: missing_analysis_engine（GHIDRA_INSTALL_DIR 未设）\n  - ida-registration: not_configured",
+      "output_exit_code": null,
+      "subject_sha256": null,
+      "note": "exit code 未记录于原 lab 记录。"
+    },
+    {
+      "step": "步骤4 Agent 接入（Hermes MCP 注册）",
+      "command": "npx rea setup -y --client hermes",
+      "output": "appliedActions[2]: configured_hermes, installed_skill\n  - configure_client:hermes → /root/.hermes/profiles/dev_ck/config.yaml（自动备份 .rea.backup）\n  - install_skill:hermes → skills/reverse-engineer-anything（SKILL.md + references）",
+      "output_exit_code": null,
+      "subject_sha256": null,
+      "note": "config.yaml 实测新增 mcp_servers.rea（L674-681）。路径已脱敏标注为通用 profile 配置示例，不含密钥。"
+    },
+    {
+      "step": "步骤6 无引擎 deep analysis（fail-closed 证据）",
+      "command": "npx rea analyze ./hello",
+      "output": "error: Analysis failed\ncode: provider_unavailable\ncandidate_ids[3]: ghidra,hopper,ida\nrejections[3]: ghidra(not_configured) / hopper(executable_missing) / ida(not_configured)",
+      "output_exit_code": null,
+      "subject_sha256": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352",
+      "note": "分析对象 hello 为 lab01 自编译 ELF。"
+    },
+    {
+      "step": "附录R8-A A1 venv 安装",
+      "command": "python3 -m venv /root/projects/realearn/lab-env/.rea-python && .rea-python/bin/pip install pwntools==4.15.0 pyelftools==0.33 unicorn==2.1.2 && .rea-python/bin/python -c '...'",
+      "output": "pwntools 4.15.0 / pyelftools 0.33 / unicorn 2.1.2   # 三版本精确匹配 REA 要求",
+      "output_exit_code": null,
+      "subject_sha256": null,
+      "note": "纯 venv，不动系统 Python。"
+    },
+    {
+      "step": "附录R8-A A2 引擎点亮 inspect-binary-layout",
+      "command": "export REA_PWNTOOLS_PYTHON=/root/projects/realearn/lab-env/.rea-python/bin/python && npx rea inspect-binary-layout /root/projects/realearn/lab-env/hello",
+      "output": "evidence_id: ev_6e479c83fba06374c38ab8f9fa3876e561d28d3515aa68473598e9f94dcb556c\nsubject: hello / sha256 36cdabb6…4207352 / elf / x86_64\nprovider: pwntools-elf @ pwntools 4.15.0;pyelftools 0.33;unicorn 2.1.2\nnormalized_result: 31 sections, entry_point 0x400320（与 lab 01 readelf 手工结果一致）",
+      "output_exit_code": null,
+      "subject_sha256": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352",
+      "note": "证据契约完整输出：evidence_id（内容寻址）+ subject sha256 + provider 三件套版本 + normalized_result。"
+    },
+    {
+      "step": "附录R8-A A3 hello-stripped 实测",
+      "command": "npx rea inspect-binary-layout hello-stripped",
+      "output": "evidence_id ev_a2ba32af…，sha256 7dda4d05… ✓",
+      "output_exit_code": null,
+      "subject_sha256": "7dda4d0500da95f2daeaf952b5efc3be4b51f6472f775a2b6be92d0c687f82c3"
+    },
+    {
+      "step": "附录R8-A A3 libcrypto 实测（CLI --format json）",
+      "command": "npx rea inspect-binary-layout /usr/lib64/libcrypto.so.3.0.12 --format json",
+      "output": "evidence_id ev_424ee8d3…，30 sections / 11 segments。MCP 通道对大结果报 resource_constraint（不截断、提示走 evidence bundle）",
+      "output_exit_code": null,
+      "subject_sha256": "c7f3d84f6de8162ba54aa261a69696c54f475c7178a1bb0d4a7caf8c53bffa76",
+      "note": "分析对象为系统自带 OpenSSL libcrypto.so.3.0.12（Apache-2.0，授权允许反编译研究）。"
+    },
+    {
+      "step": "附录R8-A A4 evidence bundle 闭环",
+      "command": "inspect_binary_layout(hello) → get_evidence_bundle(detail:summary) → export_evidence_bundle → rea evidence-export hello-bundle.json hello-canonical.json",
+      "output": "ev_6e479c83…（会话保留）\nget_evidence_bundle → total_retained_records: 1 ✓\nexport_evidence_bundle → hello-bundle.json（39113 bytes, records:1, unknowns:0）\nrea evidence-export → 校验通过，canonical 导出 ✓",
+      "output_exit_code": null,
+      "subject_sha256": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352",
+      "note": "单条 evidence JSON 直接喂 evidence-export 会被 evidence_integrity_mismatch 拒绝——必须用 MCP export_evidence_bundle 导出的 session bundle。"
+    },
+    {
+      "step": "附录R8-A A5 能力边界（仍 fail-closed）",
+      "command": "npx rea analyze ... --provider pwntools-elf",
+      "output": "capability_unavailable: \"The requested analysis provider is unknown. Choose one of: ghidra, hopper, ida.\"",
+      "output_exit_code": null,
+      "subject_sha256": null,
+      "note": "open_binary 操作只认 ghidra/hopper/ida 三引擎；pwntools-elf 覆盖 ELF 布局层。"
+    }
+  ],
+  "sha256_recomputed": {
+    "hello": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352",
+    "note": "2026-10-16 在同一实验机对保留产物重算 sha256sum，与 2026-10-12 lab 记录值一致。"
+  }
+}
