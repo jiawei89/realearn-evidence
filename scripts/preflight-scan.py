@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """发前安检：扫 evidence 数据集全部文本文件是否含密钥/内网信息模式。"""
 import re, sys, pathlib
-ROOT = pathlib.Path(__file__).resolve().parent
+ROOT = pathlib.Path(__file__).resolve().parent.parent  # 仓根（scripts/ 的上级）
 pats = {
     'ghp_/gho_ token': r'gh[pousr]_[A-Za-z0-9]{20,}',
     'sk_live/priv key': r'(sk_live_[A-Za-z0-9]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)',
