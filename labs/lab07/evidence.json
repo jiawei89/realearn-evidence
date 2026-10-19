@@ -1,0 +1,67 @@
+{
+  "dataset": "realearn-evidence",
+  "schema_version": 1,
+  "contract_generation": "rea-agents 6.7.0 (post-6.6.0 evidence contract)",
+  "lab_id": "lab07",
+  "title": "R8-A 证据链在 rea-agents 6.7.0 下重跑：inspect → bundle → canonical + 旧 6.4.0 bundle 拒绝样例",
+  "date": "2026-10-19",
+  "verified_date": "2026-10-19",
+  "source_record": "doc/labs/2026-10-19-lab07-rea670-r8a-rerun.md",
+  "environment": {"os": "Linux opencloudos 9.4 x86_64（腾讯云 VM，2 vCPU / 7G RAM）", "node": "v22.22.0", "npm": "10.9.4", "rea": "rea-agents@6.7.0", "workdir": "/root/projects/realearn/lab-env-670/", "pwntools_venv": "复用 lab-env/.rea-python（pwntools 4.15.0 / pyelftools 0.33 / unicorn 2.1.2）"},
+  "entries": [
+    {
+      "step": "步骤1 MCP initialize",
+      "command": "npx rea-agents@6.7.0 mcp （stdio JSON-RPC 探针 lab-env-670/mcp-probe-670.py）",
+      "output": "initialize → serverInfo {name: \"rea\", version: \"6.7.0\"}",
+      "output_exit_code": null,
+      "subject_sha256": null,
+      "note": "探针结构同 lab00 mcp-probe8.py，仅改版本与工作目录。"
+    },
+    {
+      "step": "步骤2 inspect_binary_layout(hello)",
+      "command": "MCP tools/call inspect_binary_layout {path: /root/projects/realearn/lab-env/hello}",
+      "output": "evidence_id: ev_79a48ab6902dcd75628861e9be462c7a76110a80c2bac06894483a896ad9670b\nsubject: hello / sha256 36cdabb6…4207352 / elf / x86_64\nprovider: pwntools-elf @ pwntools@4.15.0;pyelftools@0.33;unicorn@2.1.2\nauthority: shipped-artifact / predicate_type: rea.analysis\nnormalized_result: 31 sections, entry_point reported_value 0x400320 (linked-virtual-address)\nrecord keys: evidence_id, subject, provider, analysis_profile, predicate_type, operation, parameters, raw_result, normalized_result, confidence, authority, environment, limitations, relationship_coverage, locations, evidence_links\nrelationship_coverage: null（6.6.0 契约要求的显式可空字段）",
+      "output_exit_code": null,
+      "subject_sha256": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352",
+      "note": "分析对象与 lab00/lab01 为同一 hello ELF。结果本体与 6.4.0 一致；evidence_id 由 6.4.0 的 ev_6e479c83… 重算为 ev_79a48ab6…（契约字段进内容寻址输入，属 6.6.0 BREAKING 预期行为）。"
+    },
+    {
+      "step": "步骤3 get_evidence_bundle + export_evidence_bundle",
+      "command": "MCP tools/call get_evidence_bundle {detail: summary}；export_evidence_bundle {path: hello-bundle-670.json, overwrite: true}",
+      "output": "{\"kind\":\"evidence-bundle-summary\",\"total_retained_records\":1,\"matching_records\":1,\"unknown_revisions\":0,\nrecords[0].evidence_id: ev_79a48ab6…}\nexport → hello-bundle-670.json (39142 bytes, records: 1, unknowns: 0)",
+      "output_exit_code": null,
+      "subject_sha256": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352",
+      "note": "records[0] 键集含显式 relationship_coverage（null）——6.7.0 bundle schema 验证必需字段。"
+    },
+    {
+      "step": "步骤4a canonical 导出（6.7.0 bundle）",
+      "command": "npx rea evidence-export hello-bundle-670.json hello-canonical-670.json",
+      "output": "path: hello-canonical-670.json / bytes: 39142 / records: 1（校验通过）",
+      "output_exit_code": null,
+      "subject_sha256": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352",
+      "note": "export 与 canonical 导出同字节数且 sha256 相同（15c37ab5…0217f0）。"
+    },
+    {
+      "step": "步骤4b 旧 6.4.0 bundle 拒绝样例（迁移警示实据）",
+      "command": "npx rea evidence-export /root/projects/realearn/lab-env/hello-bundle.json /tmp/reject.json",
+      "output": "code: evidence_integrity_mismatch\ncategory: integrity_mismatch\nmessage: \"Evidence bundle does not match the bundle schema at records.0.relationship_coverage: Invalid input: expected object, received undefined. Supply an unmodified bundle written by export_evidence_bundle or rea evidence-export.\"\nretryable: false",
+      "output_exit_code": null,
+      "subject_sha256": null,
+      "note": "输入为 lab00 附录 R8-A 于 2026-10-12 用 rea-agents@6.4.0 导出的 session bundle（hello-bundle.json，39113 bytes）。6.6.0 BREAKING：旧 evidence 不迁移、缺失字段不猜默认，fail-closed 拒绝。"
+    },
+    {
+      "step": "步骤5 产物 sha256 当场复核",
+      "command": "sha256sum hello hello-bundle-670.json hello-canonical-670.json",
+      "output": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352  hello\n15c37ab5eb4909075d617825ba76a82a4b7ca7d5fd0fbe25f1e54de6640217f0  hello-bundle-670.json\n15c37ab5eb4909075d617825ba76a82a4b7ca7d5fd0fbe25f1e54de6640217f0  hello-canonical-670.json",
+      "output_exit_code": null,
+      "subject_sha256": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352",
+      "note": "hello sha256 与 lab00/lab01 记录值一致（同一对象跨版本对照成立）。"
+    }
+  ],
+  "sha256_recomputed": {
+    "hello": "36cdabb6a0c66710b45a7c566ae112450c7e8a45c4bdfc6ea2301396f4207352",
+    "hello-bundle-670.json": "15c37ab5eb4909075d617825ba76a82a4b7ca7d5fd0fbe25f1e54de6640217f0",
+    "hello-canonical-670.json": "15c37ab5eb4909075d617825ba76a82a4b7ca7d5fd0fbe25f1e54de6640217f0",
+    "note": "2026-10-19 实跑当日复核，与 lab 记录逐字一致。"
+  }
+}

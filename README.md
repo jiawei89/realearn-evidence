@@ -41,6 +41,20 @@ realearn（realearn.online）的**公开实跑证据数据集**——每个教�
 - `labs/lab01/` — 第一个合法分析目标：自编译 hello ELF（gcc/-O0/readelf/objdump 三方对账）
 - `labs/lab02/` — stripped 二进制与字符串证据（strip 后锚点定位、strings 扫描）
 - `labs/lab03/` — 系统 OpenSSL libcrypto 只读分析（Apache-2.0 授权依据）
+- `labs/lab07/` — 6.7.0 时代基线：同一 hello 在新 evidence 契约下重跑 R8-A 全链 + 旧 6.4.0 bundle 被拒样例（2026-10-19）
+
+## 双版本说明（2026-10-19 起）
+
+REA 官方在 rea-agents **6.6.0**（随 6.7.0 于 2026-10-18 发布上 npm）对 evidence 契约做了 BREAKING 变更，本仓数据因此分两代：
+
+- **`labs/lab00–lab03/`（6.4.0 时代，2026-10-12 实跑）— historical，保留不动。** 其 evidence_id / bundle 基于旧契约（无 `relationship_coverage` 字段），在 rea-agents ≥6.6.0 下已不可 re-export（实测被 `evidence_integrity_mismatch` 拒绝）。对照价值：与新版本数据并排展示契约演进。
+- **`labs/lab07/`（6.7.0 时代，2026-10-19 实跑）— 当前基线。** 同一 `hello` ELF（sha256 不变）在 6.7.0 下重跑 R8-A 全链（inspect → bundle → canonical），全部通过。
+
+迁移差异要点（官方 changelog + 本仓实测）：
+1. **`relationship_coverage` 必填（显式可空）**：identity commitments 强制携带，缺失即 schema 拒绝（实测报错精确指向 `records.0.relationship_coverage`）。
+2. **`coverage_status` 删除**：prose 覆盖推断一并移除；inventory 改要求 scoped coverage + 显式 `integrity_contradictions`。
+3. **evidence_id 全量重算**：同一对象同一操作，6.4.0 `ev_6e479c83…` → 6.7.0 `ev_79a48ab6…`（契约字段进内容寻址输入）。旧 ID 全部作废。
+4. **旧文件不迁移**：官方明确不猜默认值，须重新生成；跨版本混用 bundle 会被 fail-closed 拒绝。
 
 ## 复现方法
 
